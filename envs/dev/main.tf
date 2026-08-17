@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.9"
+  required_version = ">= 1.10"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -73,7 +73,7 @@ module "db" {
   private_subnet_ids = module.vpc.private_subnet_ids
 
   # This is the SG chain closing: only the Fargate tasks can reach Postgres.
-  allowed_security_group_ids = [module.app.task_security_group_id]
+  allowed_security_group_ids = { app = module.app.task_security_group_id }
 
   instance_class = "db.t4g.micro"
   multi_az       = false # true for failover coverage; roughly doubles cost

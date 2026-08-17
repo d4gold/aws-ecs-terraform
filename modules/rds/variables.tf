@@ -12,9 +12,9 @@ variable "private_subnet_ids" {
 }
 
 variable "allowed_security_group_ids" {
-  description = "Security groups permitted to reach the database. Usually the ECS task SG."
-  type        = list(string)
-  default     = []
+  description = "Security groups permitted to reach the database, keyed by a stable name. Usually the ECS task SG."
+  type        = map(string)
+  default     = {}
 }
 
 variable "engine_version" {

@@ -15,12 +15,12 @@
 # After bootstrap applies, uncomment, paste the bucket name from its
 # state_bucket output, then run: terraform init -migrate-state
 #
-# terraform {
-#   backend "s3" {
-#     bucket       = "PASTE-BUCKET-NAME-HERE"
-#     key          = "envs/dev/terraform.tfstate"
-#     region       = "us-east-1"
-#     encrypt      = true
-#     use_lockfile = true
-#   }
-# }
+terraform {
+  backend "s3" {
+    bucket       = "d4gold-tfstate-975050121360"
+    key          = "envs/dev/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
+  }
+}
