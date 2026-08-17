@@ -3,3 +3,6 @@
 *.tfstate.*
 *.tfvars
 crash.log
+
+# Saved plan files
+*tfplan*
