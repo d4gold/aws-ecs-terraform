@@ -1,0 +1,82 @@
+name: terraform
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: fmt / validate / lint / scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive
+
+      # Each module is validated on its own. The root config needs a backend
+      # and credentials to init; modules do not, so this runs with no secrets.
+      - name: terraform validate (modules)
+        run: |
+          set -e
+          for dir in modules/*/; do
+            echo "==> $dir"
+            terraform -chdir="$dir" init -backend=false -input=false
+            terraform -chdir="$dir" validate
+          done
+
+      - uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: latest
+
+      - name: tflint
+        run: |
+          tflint --init
+          tflint --recursive
+
+      - name: checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: terraform
+          soft_fail: true
+          quiet: true
+
+  # Plan runs against the real account using OIDC -- no AWS keys are stored
+  # in GitHub. The role is created in bootstrap/ and scoped to this repo.
+  plan:
+    name: terraform plan (dev)
+    needs: validate
+    runs-on: ubuntu-latest
+    if: vars.AWS_ROLE_ARN != ''
+    permissions:
+      contents: read
+      id-token: write      # required for OIDC
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: init
+        working-directory: envs/dev
+        run: terraform init -input=false
+
+      - name: plan
+        working-directory: envs/dev
+        run: terraform plan -input=false -no-color
