@@ -1,18 +1,21 @@
 output "endpoint" {
   description = "host:port"
-  value       = aws_db_instance.this.endpoint
+  value       = aws_db_instance.main.endpoint
 }
 
 output "address" {
-  value = aws_db_instance.this.address
+  description = "Hostname of the database instance, without the port."
+  value       = aws_db_instance.main.address
 }
 
 output "port" {
-  value = aws_db_instance.this.port
+  description = "Port the database listens on."
+  value       = aws_db_instance.main.port
 }
 
 output "security_group_id" {
-  value = aws_security_group.this.id
+  description = "ID of the database security group."
+  value       = aws_security_group.main.id
 }
 
 output "secret_arn" {
@@ -21,5 +24,6 @@ output "secret_arn" {
 }
 
 output "identifier" {
-  value = aws_db_instance.this.identifier
+  description = "RDS instance identifier."
+  value       = aws_db_instance.main.identifier
 }

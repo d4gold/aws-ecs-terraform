@@ -1,9 +1,11 @@
 variable "name" {
-  type = string
+  description = "Name prefix for all database resources."
+  type        = string
 }
 
 variable "vpc_id" {
-  type = string
+  description = "VPC in which to create the database and its security group."
+  type        = string
 }
 
 variable "private_subnet_ids" {
@@ -18,8 +20,9 @@ variable "allowed_security_group_ids" {
 }
 
 variable "engine_version" {
-  type    = string
-  default = "16.4"
+  description = "PostgreSQL engine version. Must match the major version in parameter_group_family."
+  type        = string
+  default     = "16.4"
 }
 
 variable "parameter_group_family" {
@@ -35,8 +38,9 @@ variable "instance_class" {
 }
 
 variable "allocated_storage" {
-  type    = number
-  default = 20
+  description = "Initial storage in GiB."
+  type        = number
+  default     = 20
 }
 
 variable "max_allocated_storage" {
@@ -46,18 +50,21 @@ variable "max_allocated_storage" {
 }
 
 variable "database_name" {
-  type    = string
-  default = "appdb"
+  description = "Name of the initial database created on the instance."
+  type        = string
+  default     = "appdb"
 }
 
 variable "master_username" {
-  type    = string
-  default = "dbadmin"
+  description = "Master user name. The password is generated and stored in Secrets Manager."
+  type        = string
+  default     = "dbadmin"
 }
 
 variable "port" {
-  type    = number
-  default = 5432
+  description = "Port the database listens on."
+  type        = number
+  default     = 5432
 }
 
 variable "multi_az" {
@@ -79,8 +86,9 @@ variable "performance_insights_enabled" {
 }
 
 variable "deletion_protection" {
-  type    = bool
-  default = false
+  description = "Blocks accidental deletion. True in production."
+  type        = bool
+  default     = false
 }
 
 variable "skip_final_snapshot" {
@@ -96,8 +104,9 @@ variable "apply_immediately" {
 }
 
 variable "create_alarms" {
-  type    = bool
-  default = true
+  description = "Create the CloudWatch alarms for free storage and CPU."
+  type        = bool
+  default     = true
 }
 
 variable "free_storage_alarm_bytes" {
@@ -107,6 +116,7 @@ variable "free_storage_alarm_bytes" {
 }
 
 variable "tags" {
-  type    = map(string)
-  default = {}
+  description = "Tags applied to all resources."
+  type        = map(string)
+  default     = {}
 }

@@ -9,7 +9,8 @@ variable "region" {
 }
 
 variable "vpc_id" {
-  type = string
+  description = "VPC in which to create the load balancer, tasks, and security groups."
+  type        = string
 }
 
 variable "public_subnet_ids" {
@@ -35,13 +36,15 @@ variable "container_image" {
 }
 
 variable "container_port" {
-  type    = number
-  default = 80
+  description = "Port the container listens on. Also the target group and task security group port."
+  type        = number
+  default     = 80
 }
 
 variable "health_check_path" {
-  type    = string
-  default = "/"
+  description = "Path the target group health check requests."
+  type        = string
+  default     = "/"
 }
 
 variable "task_cpu" {
@@ -57,18 +60,21 @@ variable "task_memory" {
 }
 
 variable "desired_count" {
-  type    = number
-  default = 2
+  description = "Initial number of tasks. Ignored on later applies so a deploy pipeline can scale freely."
+  type        = number
+  default     = 2
 }
 
 variable "min_capacity" {
-  type    = number
-  default = 2
+  description = "Lower bound for autoscaling."
+  type        = number
+  default     = 2
 }
 
 variable "max_capacity" {
-  type    = number
-  default = 6
+  description = "Upper bound for autoscaling."
+  type        = number
+  default     = 6
 }
 
 variable "cpu_target_value" {
@@ -78,8 +84,9 @@ variable "cpu_target_value" {
 }
 
 variable "memory_target_value" {
-  type    = number
-  default = 75
+  description = "Average memory percent to hold."
+  type        = number
+  default     = 75
 }
 
 variable "log_retention_days" {
@@ -95,6 +102,7 @@ variable "enable_container_insights" {
 }
 
 variable "tags" {
-  type    = map(string)
-  default = {}
+  description = "Tags applied to all resources."
+  type        = map(string)
+  default     = {}
 }

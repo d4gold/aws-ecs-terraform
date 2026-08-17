@@ -11,7 +11,7 @@ locals {
 # path: no public IP, no route, no security group rule.
 # ---------------------------------------------------------------------------
 
-resource "aws_security_group" "this" {
+resource "aws_security_group" "main" {
   name        = "${var.name}-rds"
   description = "Postgres access from application security groups only"
   vpc_id      = var.vpc_id
@@ -21,7 +21,7 @@ resource "aws_security_group" "this" {
 resource "aws_vpc_security_group_ingress_rule" "from_apps" {
   for_each = var.allowed_security_group_ids
 
-  security_group_id            = aws_security_group.this.id
+  security_group_id            = aws_security_group.main.id
   description                  = "Postgres from ${each.key}"
   referenced_security_group_id = each.value
   from_port                    = var.port
@@ -35,7 +35,7 @@ resource "aws_vpc_security_group_ingress_rule" "from_apps" {
 # Multi-AZ instance in a single-AZ subnet group.
 # ---------------------------------------------------------------------------
 
-resource "aws_db_subnet_group" "this" {
+resource "aws_db_subnet_group" "main" {
   name       = "${var.name}-db"
   subnet_ids = var.private_subnet_ids
   tags       = merge(local.tags, { Name = "${var.name}-db" })
@@ -50,7 +50,7 @@ resource "aws_db_subnet_group" "this" {
 # useful default to set -- it logs slow queries without logging everything.
 # ---------------------------------------------------------------------------
 
-resource "aws_db_parameter_group" "this" {
+resource "aws_db_parameter_group" "main" {
   name   = "${var.name}-pg"
   family = var.parameter_group_family
 
@@ -102,7 +102,7 @@ resource "aws_secretsmanager_secret_version" "db" {
     username = var.master_username
     password = random_password.master.result
     engine   = "postgres"
-    host     = aws_db_instance.this.address
+    host     = aws_db_instance.main.address
     port     = var.port
     dbname   = var.database_name
   })
@@ -112,7 +112,7 @@ resource "aws_secretsmanager_secret_version" "db" {
 # The instance
 # ---------------------------------------------------------------------------
 
-resource "aws_db_instance" "this" {
+resource "aws_db_instance" "main" {
   identifier = "${var.name}-db"
 
   engine         = "postgres"
@@ -129,9 +129,9 @@ resource "aws_db_instance" "this" {
   password = random_password.master.result
   port     = var.port
 
-  db_subnet_group_name   = aws_db_subnet_group.this.name
-  vpc_security_group_ids = [aws_security_group.this.id]
-  parameter_group_name   = aws_db_parameter_group.this.name
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  vpc_security_group_ids = [aws_security_group.main.id]
+  parameter_group_name   = aws_db_parameter_group.main.name
   publicly_accessible    = false
 
   multi_az = var.multi_az
@@ -182,7 +182,7 @@ resource "aws_cloudwatch_metric_alarm" "free_storage" {
   treat_missing_data  = "breaching"
 
   dimensions = {
-    DBInstanceIdentifier = aws_db_instance.this.identifier
+    DBInstanceIdentifier = aws_db_instance.main.identifier
   }
 
   tags = local.tags
@@ -203,7 +203,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu" {
   treat_missing_data  = "notBreaching"
 
   dimensions = {
-    DBInstanceIdentifier = aws_db_instance.this.identifier
+    DBInstanceIdentifier = aws_db_instance.main.identifier
   }
 
   tags = local.tags
