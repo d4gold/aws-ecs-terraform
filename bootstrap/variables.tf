@@ -24,3 +24,19 @@ variable "force_destroy_state_bucket" {
   type        = bool
   default     = true
 }
+variable "budget_name" {
+  description = "Name of the monthly cost budget. Matches the budget that already exists so it can be imported rather than recreated."
+  type        = string
+  default     = "aws-ecs-terraform-monthly"
+}
+
+variable "budget_limit_usd" {
+  description = "Monthly cost budget in USD. Alerts only; AWS does not stop spending at this figure."
+  type        = string
+  default     = "5"
+}
+
+variable "budget_notification_email" {
+  description = "Address that receives budget alerts. Set via TF_VAR_budget_notification_email. Deliberately has no default so a personal address stays out of this public repository."
+  type        = string
+}
