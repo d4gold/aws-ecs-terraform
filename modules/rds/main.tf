@@ -36,9 +36,15 @@ resource "aws_vpc_security_group_ingress_rule" "from_apps" {
 # ---------------------------------------------------------------------------
 
 resource "aws_db_subnet_group" "main" {
-  name       = "${var.name}-db"
-  subnet_ids = var.private_subnet_ids
-  tags       = merge(local.tags, { Name = "${var.name}-db" })
+  # Same replacement hazard as the parameter group: a subnet group attached to
+  # a running instance cannot be deleted, so the replacement must exist first.
+  name_prefix = "${var.name}-db-"
+  subnet_ids  = var.private_subnet_ids
+  tags        = merge(local.tags, { Name = "${var.name}-db" })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -51,8 +57,11 @@ resource "aws_db_subnet_group" "main" {
 # ---------------------------------------------------------------------------
 
 resource "aws_db_parameter_group" "main" {
-  name   = "${var.name}-pg"
-  family = var.parameter_group_family
+  # name_prefix, not name: create_before_destroy builds the replacement while
+  # the original still exists, so a fixed name collides with itself and the
+  # apply fails. The prefix lets AWS generate a unique suffix each time.
+  name_prefix = "${var.name}-pg-"
+  family      = var.parameter_group_family
 
   parameter {
     name  = "log_min_duration_statement"

@@ -13,6 +13,11 @@ variable "az_count" {
   description = "Number of AZs to span. Two is the minimum for an ALB and for RDS Multi-AZ."
   type        = number
   default     = 2
+
+  validation {
+    condition     = var.az_count >= 2
+    error_message = "az_count must be at least 2: an ALB requires subnets in two availability zones, and RDS Multi-AZ needs a subnet group spanning two."
+  }
 }
 
 variable "enable_nat_gateway" {

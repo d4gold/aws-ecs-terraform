@@ -8,14 +8,17 @@ output "vpc_cidr_block" {
   value       = aws_vpc.main.cidr_block
 }
 
+# Iterating local.azs rather than the resource map keeps these lists in AZ
+# order. A splat does not work on a for_each map, and values() would sort
+# lexically rather than by the order the AZs were selected.
 output "public_subnet_ids" {
   description = "IDs of the public subnets, one per availability zone."
-  value       = aws_subnet.public[*].id
+  value       = [for az in local.azs : aws_subnet.public[az].id]
 }
 
 output "private_subnet_ids" {
   description = "IDs of the private subnets, one per availability zone."
-  value       = aws_subnet.private[*].id
+  value       = [for az in local.azs : aws_subnet.private[az].id]
 }
 
 output "availability_zones" {

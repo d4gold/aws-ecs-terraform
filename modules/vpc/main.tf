@@ -1,5 +1,11 @@
 locals {
-  azs  = slice(data.aws_availability_zones.available.names, 0, var.az_count)
+  azs = slice(data.aws_availability_zones.available.names, 0, var.az_count)
+
+  # AZ name -> position. Keying subnets by AZ name keeps their addresses
+  # stable if AWS reorders the AZ list or az_count changes, while the position
+  # still drives deterministic CIDR math.
+  az_indexes = { for i, az in local.azs : az => i }
+
   tags = merge(var.tags, { Module = "vpc" })
 }
 
@@ -21,21 +27,23 @@ resource "aws_internet_gateway" "main" {
 
 # Public subnets: /24 carved from the VPC CIDR, one per AZ.
 resource "aws_subnet" "public" {
-  count                   = var.az_count
+  for_each = local.az_indexes
+
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = cidrsubnet(var.cidr_block, 8, count.index)
-  availability_zone       = local.azs[count.index]
+  cidr_block              = cidrsubnet(var.cidr_block, 8, each.value)
+  availability_zone       = each.key
   map_public_ip_on_launch = true
-  tags                    = merge(local.tags, { Name = "${var.name}-public-${local.azs[count.index]}", Tier = "public" })
+  tags                    = merge(local.tags, { Name = "${var.name}-public-${each.key}", Tier = "public" })
 }
 
 # Private subnets offset by 100 so the CIDR blocks never collide with public.
 resource "aws_subnet" "private" {
-  count             = var.az_count
+  for_each = local.az_indexes
+
   vpc_id            = aws_vpc.main.id
-  cidr_block        = cidrsubnet(var.cidr_block, 8, count.index + 100)
-  availability_zone = local.azs[count.index]
-  tags              = merge(local.tags, { Name = "${var.name}-private-${local.azs[count.index]}", Tier = "private" })
+  cidr_block        = cidrsubnet(var.cidr_block, 8, each.value + 100)
+  availability_zone = each.key
+  tags              = merge(local.tags, { Name = "${var.name}-private-${each.key}", Tier = "private" })
 }
 
 resource "aws_route_table" "public" {
@@ -50,8 +58,9 @@ resource "aws_route" "public_internet" {
 }
 
 resource "aws_route_table_association" "public" {
-  count          = var.az_count
-  subnet_id      = aws_subnet.public[count.index].id
+  for_each = aws_subnet.public
+
+  subnet_id      = each.value.id
   route_table_id = aws_route_table.public.id
 }
 
@@ -72,26 +81,31 @@ resource "aws_eip" "nat" {
 resource "aws_nat_gateway" "main" {
   count         = var.enable_nat_gateway ? 1 : 0
   allocation_id = aws_eip.nat[0].id
-  subnet_id     = aws_subnet.public[0].id
+  subnet_id     = aws_subnet.public[local.azs[0]].id
   tags          = merge(local.tags, { Name = "${var.name}-nat" })
   depends_on    = [aws_internet_gateway.main]
 }
 
 resource "aws_route_table" "private" {
-  count  = var.az_count
+  for_each = local.az_indexes
+
   vpc_id = aws_vpc.main.id
-  tags   = merge(local.tags, { Name = "${var.name}-private-${local.azs[count.index]}" })
+  tags   = merge(local.tags, { Name = "${var.name}-private-${each.key}" })
 }
 
+# One default route per private route table, but only when the NAT exists.
+# An empty map is the for_each equivalent of count = 0.
 resource "aws_route" "private_nat" {
-  count                  = var.enable_nat_gateway ? var.az_count : 0
-  route_table_id         = aws_route_table.private[count.index].id
+  for_each = var.enable_nat_gateway ? local.az_indexes : {}
+
+  route_table_id         = aws_route_table.private[each.key].id
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = aws_nat_gateway.main[0].id
 }
 
 resource "aws_route_table_association" "private" {
-  count          = var.az_count
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private[count.index].id
+  for_each = aws_subnet.private
+
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.private[each.key].id
 }

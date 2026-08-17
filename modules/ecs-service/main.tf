@@ -77,7 +77,10 @@ resource "aws_lb" "main" {
 }
 
 resource "aws_lb_target_group" "main" {
-  name        = "${var.name}-tg"
+  # A target group still attached to a listener cannot be deleted, so any
+  # change forcing replacement deadlocks unless the new one is created first.
+  # That needs a generated name, and name_prefix caps at 6 characters.
+  name_prefix = "${substr(var.name, 0, 5)}-"
   port        = var.container_port
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
@@ -100,6 +103,10 @@ resource "aws_lb_target_group" "main" {
   deregistration_delay = 30
 
   tags = merge(local.tags, { Name = "${var.name}-tg" })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_lb_listener" "http" {
